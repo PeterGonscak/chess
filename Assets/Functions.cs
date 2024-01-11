@@ -271,6 +271,30 @@ public static class Functions
         }
         return board;
     }
+    public static byte[,][] PossiblePawnMoves(byte[][] dte)
+    {
+        byte[,][] board = new byte[64, 2][];
+        for (sbyte i = 0; i < 64; i++)
+        {
+            if (i < 8 || i > 55) continue;
+
+            List<byte> arrW = new();
+            arrW.Add((byte)(i - 8));
+            if (i > 47) arrW.Add((byte)(i - 16));
+            if (dte[i][5] != 0) arrW.Add((byte)(i - 7));
+            if (dte[i][7] != 0) arrW.Add((byte)(i - 9));
+
+            List<byte> arrB = new();
+            arrB.Add((byte)(i + 8));
+            if (i > 47) arrB.Add((byte)(i + 16));
+            if (dte[i][5] != 0) arrB.Add((byte)(i + 9));
+            if (dte[i][7] != 0) arrB.Add((byte)(i + 7));
+
+            board[i, 0] = arrW.ToArray();
+            board[i, 1] = arrB.ToArray();
+        }
+        return board;
+    }
     public static Dictionary<byte, byte> flippedDirections = new Dictionary<byte, byte>(){
             {0, 2},
             {1, 3},

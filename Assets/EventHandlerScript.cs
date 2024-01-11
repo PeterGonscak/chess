@@ -49,10 +49,7 @@ public class EventHandlerScript : MonoBehaviour
         if (PlayerPrefs.GetString("opponent") == "Pass & Play")
             passNplay = true;
         else
-        {
             playerOnTurn = PlayerPrefs.GetString("PieceColor") == "W";
-            
-        }
     }
     void Update()
     {

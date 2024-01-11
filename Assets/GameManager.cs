@@ -57,7 +57,7 @@ public class GameManager : MonoBehaviour
             gameData[1] = 0;
             gameData[2] = 0;
 
-            if (landingSquare == startingSquare - 2)
+            if (landingSquare == startingSquare - 2) //cs tu matex lol
             {
                 board[59] = 3;
                 board[56] = 6;
