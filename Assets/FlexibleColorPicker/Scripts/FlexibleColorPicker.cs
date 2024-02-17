@@ -241,7 +241,7 @@ public class FlexibleColorPicker : MonoBehaviour {
     private void OnEnable() {
         if(this.bufferedColor == null)
         {
-            string prefColor = PlayerPrefs.GetString(mainMenuScript.whiteChange ?"LightSquares" : "DarkSquares");
+            string prefColor = PlayerPrefs.GetString(mainMenuScript.colorChange == 0 ? "LightSquares" : (mainMenuScript.colorChange == 1 ? "DarkSquares" : "MoveSquares"));
             string[] rgba = prefColor.Substring(5, prefColor.Length - 6).Split(", ");
             Color color = new Color(float.Parse(rgba[0]), float.Parse(rgba[1]), float.Parse(rgba[2]), float.Parse(rgba[3]));
             this.bufferedColor = new BufferedColor(mainMenuScript == null ? startingColor : color);

@@ -532,6 +532,8 @@ MonoBehaviour:
   darkAlphaColor: {r: 0.6226415, g: 0.04447437, b: 0.04447437, a: 1}
   lightColor: {r: 0.9150943, g: 0.78421706, b: 0.66103846, a: 1}
   darkColor: {r: 0.43529412, g: 0.2901961, b: 0.10980392, a: 1}
+  moveColor: {r: 0.82144606, g: 0.9339623, b: 0.44558308, a: 0}
+  lastMoveCords: 
   wQueen: {fileID: -2088124102, guid: ea6eded34d1c4fc4f8f6e32e9925c562, type: 3}
   bQueen: {fileID: -549276513, guid: ea6eded34d1c4fc4f8f6e32e9925c562, type: 3}
   Board: {fileID: 364732652}
@@ -560,7 +562,7 @@ MonoBehaviour:
   ChooseColor: {fileID: 0}
   StartButton: {fileID: 0}
   slider: {fileID: 0}
-  whiteChange: 1
+  colorChange: 0
 --- !u!1 &1203151859
 GameObject:
   m_ObjectHideFlags: 0

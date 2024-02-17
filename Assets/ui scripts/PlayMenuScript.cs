@@ -24,6 +24,10 @@ public class PlayMenuScript : MonoBehaviour
         "1800 ELO",
         "2000 ELO"
     };
+    void Start()
+    {
+        PlayerPrefs.SetString("opponent", "Pass & Play");
+    }
     public void SlideChange()
     {
         oponentText.text = oponents[(int) slider.value];

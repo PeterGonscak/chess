@@ -17,4 +17,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Settings.unity
     guid: 8269889854bf7fa438190f109d2b2a33
+  - enabled: 1
+    path: Assets/Scenes/WatchMenu.unity
+    guid: 6d0b79908e3099d429706e756e4ccb4a
   m_configObjects: {}

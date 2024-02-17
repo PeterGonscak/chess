@@ -16,12 +16,18 @@ public class MainMenu : MonoBehaviour
     public Slider slider;
 
     [HideInInspector]
-    public bool whiteChange = true;
+    public int colorChange = 0;
 
     public void LoadPlay()
     {
         SceneManager.LoadScene("PlayMenu");
     }
+
+    public void LoadWatch()
+    {
+        SceneManager.LoadScene("WatchMenu");
+    }
+    
     public void LoadSettings()
     {
         SceneManager.LoadScene("Settings");
@@ -38,14 +44,15 @@ public class MainMenu : MonoBehaviour
     {
         PlayerPrefs.SetString("LightSquares", "rgba(0.9339623, 0.8006562, 0.6746681, 1)");
         PlayerPrefs.SetString("DarkSquares", "rgba(0.4339623, 0.2914913, 0.108783, 1)");
+        PlayerPrefs.SetString("MoveSquares", "rgba(0.8588235, 0.9529411, 0.317647, 0.5)");
     }
     public void VolumeChange()
     {
         PlayerPrefs.SetFloat("Volume", slider.value);
     }
-    public void ActivateColorPicker(bool white)
+    public void ActivateColorPicker(int colorToSet)
     {
-        if(colorPickerObj.activeInHierarchy && white == whiteChange)
+        if(colorPickerObj.activeInHierarchy && colorToSet == colorChange)
         {
             colorPickerObj.SetActive(false);
         }
@@ -53,19 +60,31 @@ public class MainMenu : MonoBehaviour
         {
             colorPickerObj.SetActive(true);
         }
-        whiteChange = white;
-        string prefColor = PlayerPrefs.GetString(white ? "LightSquares" : "DarkSquares");
+        colorChange = colorToSet;
+        string prefColor = PlayerPrefs.GetString(colorToSet == 0 ? "LightSquares" : (colorToSet == 1 ? "DarkSquares" : "MoveSquares"));
         string[] rgba = prefColor.Substring(5, prefColor.Length - 6).Split(", ");
         colorPicker.color = new Color(float.Parse(rgba[0]), float.Parse(rgba[1]), float.Parse(rgba[2]), float.Parse(rgba[3]));
         OnChangeColorPicker();
     }
+
+    
     public void OnChangeColorPicker()
     {
-        PlayerPrefs.SetString(whiteChange ? "LightSquares" : "DarkSquares", colorPicker.color.ToString());
+        PlayerPrefs.SetString(colorChange == 0 ? "LightSquares" : (colorChange == 1 ? "DarkSquares" : "MoveSquares"), colorPicker.color.ToString());
     }
     public void StartGame(string startingColor)
     {
+        PlayerPrefs.SetString("Mode", "Player");
         PlayerPrefs.SetString("PieceColor", startingColor);
+        TextMeshProUGUI text = inputFEN.transform.GetChild(0).transform.GetChild(2).GetComponent<TextMeshProUGUI>();
+        if (text.text.Length < 20) PlayerPrefs.DeleteKey("FEN");
+        SceneManager.LoadScene("Game");
+    }
+    public void StartSpectatorGame()
+    {
+        PlayerPrefs.SetString("opponent", "null");
+        PlayerPrefs.SetString("Mode", "Spectator");
+        PlayerPrefs.SetString("PieceColor", "W");
         TextMeshProUGUI text = inputFEN.transform.GetChild(0).transform.GetChild(2).GetComponent<TextMeshProUGUI>();
         if (text.text.Length < 20) PlayerPrefs.DeleteKey("FEN");
         SceneManager.LoadScene("Game");
