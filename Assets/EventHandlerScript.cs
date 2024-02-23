@@ -106,16 +106,16 @@ public class EventHandlerScript : MonoBehaviour
             {
                 switch (opponent)
                 {
-                    case "800 ELO":
+                    case "700 ELO":
                         move = ChessBot_v1.GetMove(fen, positions);
                         break;
-                    case "1000 ELO":
+                    case "900 ELO":
                         move = ChessBot_v2.GetMove(fen, positions);
                         break;
-                    case "1200 ELO":
+                    case "1100 ELO":
                         move = ChessBot_v3.GetMove(fen, positions);
                         break;
-                    case "1400 ELO":
+                    case "1200 ELO":
                         move = ChessBot_v4.GetMove(fen, positions);
                         break;
                 }
@@ -274,11 +274,9 @@ public class EventHandlerScript : MonoBehaviour
         lastMoveCords = new int[] { startingTile, landingTile };
         colorMovedSquares(false);
 
-        Debug.Log(InCheck((byte)gmScript.kingPositions[playerOnTurn ? 0 : 1], 0, 0, gmScript.kingPositions[playerOnTurn ? 0 : 1], false));
-
         if (gameOver)
             audioSource.clip = audioClips[3];
-        else if (InCheck((byte)gmScript.kingPositions[playerOnTurn ? 0 : 1], 0, 0, gmScript.kingPositions[playerOnTurn ? 0 : 1], false))
+        else if (InCheck((byte)gmScript.kingPositions[playerOnTurn ? 1 : 0], 0, 0, gmScript.kingPositions[playerOnTurn ? 1 : 0], false))
             audioSource.clip = audioClips[2];
         else if(capture)
             audioSource.clip = audioClips[1];

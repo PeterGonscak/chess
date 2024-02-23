@@ -14,10 +14,10 @@ public class WatchMenu : MonoBehaviour
     public GameObject inputFEN;
 
     string[] oponents = {
-        "800 ELO",
-        "1000 ELO",
-        "1200 ELO",
-        "1400 ELO"
+        "700 ELO",
+        "900 ELO",
+        "1100 ELO",
+        "1200 ELO"
     };
     private void Start()
     {
