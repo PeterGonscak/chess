@@ -6,7 +6,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-public class MainMenu : MonoBehaviour
+public class MenuFunctions : MonoBehaviour
 {
     public GameObject inputFEN;
     public FlexibleColorPicker colorPicker;
@@ -14,6 +14,9 @@ public class MainMenu : MonoBehaviour
     public GameObject ChooseColor;
     public GameObject StartButton;
     public Slider slider;
+    public Slider botSlider;
+    public Toggle toggle;
+    public TextMeshProUGUI deltaText;
 
     [HideInInspector]
     public int colorChange = 0;
@@ -22,7 +25,6 @@ public class MainMenu : MonoBehaviour
     {
         SceneManager.LoadScene("PlayMenu");
     }
-
     public void LoadWatch()
     {
         SceneManager.LoadScene("WatchMenu");
@@ -50,8 +52,21 @@ public class MainMenu : MonoBehaviour
     {
         PlayerPrefs.SetFloat("Volume", slider.value);
     }
+    public void DeltaChange()
+    {
+        deltaText.text = botSlider.value.ToString().Substring(0,4);
+        PlayerPrefs.SetFloat("BotDelta", botSlider.value);
+    }
+    public void RandomiseBotOutput()
+    {
+        PlayerPrefs.SetInt("BotRandom", toggle.isOn ? 1 : 0);
+    }
     public void ActivateColorPicker(int colorToSet)
     {
+        colorChange = colorToSet;
+        string prefColor = PlayerPrefs.GetString(colorToSet == 0 ? "LightSquares" : (colorToSet == 1 ? "DarkSquares" : "MoveSquares"));
+        string[] rgba = prefColor.Substring(5, prefColor.Length - 6).Split(", ");
+        colorPicker.color = new Color(float.Parse(rgba[0]), float.Parse(rgba[1]), float.Parse(rgba[2]), float.Parse(rgba[3]));
         if(colorPickerObj.activeInHierarchy && colorToSet == colorChange)
         {
             colorPickerObj.SetActive(false);
@@ -60,13 +75,15 @@ public class MainMenu : MonoBehaviour
         {
             colorPickerObj.SetActive(true);
         }
-        colorChange = colorToSet;
-        string prefColor = PlayerPrefs.GetString(colorToSet == 0 ? "LightSquares" : (colorToSet == 1 ? "DarkSquares" : "MoveSquares"));
-        string[] rgba = prefColor.Substring(5, prefColor.Length - 6).Split(", ");
-        colorPicker.color = new Color(float.Parse(rgba[0]), float.Parse(rgba[1]), float.Parse(rgba[2]), float.Parse(rgba[3]));
         OnChangeColorPicker();
     }
 
+    public void PlayButtonSound()
+    {
+        AudioSource audioSource = GameObject.Find("Audio Source").GetComponent<AudioSource>();
+        audioSource.volume = PlayerPrefs.GetFloat("Volume");
+        audioSource.Play();
+    }
     
     public void OnChangeColorPicker()
     {
@@ -82,7 +99,7 @@ public class MainMenu : MonoBehaviour
     }
     public void StartSpectatorGame()
     {
-        PlayerPrefs.SetString("opponent", "null");
+        PlayerPrefs.SetString("Bot", "null");
         PlayerPrefs.SetString("Mode", "Spectator");
         PlayerPrefs.SetString("PieceColor", "W");
         TextMeshProUGUI text = inputFEN.transform.GetChild(0).transform.GetChild(2).GetComponent<TextMeshProUGUI>();

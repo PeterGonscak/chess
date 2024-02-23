@@ -236,7 +236,7 @@ public class FlexibleColorPicker : MonoBehaviour {
         canvas = GetComponentInParent<Canvas>();
     }
 
-    public MainMenu mainMenuScript = null;
+    public MenuFunctions mainMenuScript = null;
 
     private void OnEnable() {
         if(this.bufferedColor == null)

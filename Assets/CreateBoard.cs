@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 [System.Serializable]
 public class Piece
@@ -13,25 +14,27 @@ public class Piece
 }
 public class CreateBoard : MonoBehaviour
 {
+    public GameObject testPrefab1;
+    public GameObject testPrefab2;
     public Color lightColor;
     public Color darkColor;
     public List<Piece> pieces = new();
     public GameObject tile;
     public GameObject piece;
     public EventHandlerScript eventHandler;
-    public string startingFEN;
-
+    public string startingFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 0";
     public GameManager gmScript;
 
-
-    // Start is called before the first frame update
     void Start()
     {
-        lightColor = Functions.ConvertToColor(PlayerPrefs.GetString("LightSquares"));
-        darkColor = Functions.ConvertToColor(PlayerPrefs.GetString("DarkSquares"));
+        lightColor = Functions.ConvertToColor(PlayerPrefs.GetString("LightSquares", "rgba(0.9339623, 0.8006562, 0.6746681, 1)"));
+        darkColor = Functions.ConvertToColor(PlayerPrefs.GetString("DarkSquares", "rgba(0.4339623, 0.2914913, 0.108783, 1)"));
         if (PlayerPrefs.GetString("FEN") != "")
             startingFEN = PlayerPrefs.GetString("FEN");
         gmScript.gameStart(startingFEN);
+    }
+    public void GenerateBoard()
+    {
         int cnt = 0;
         for (int rank = 7; rank >= 0; rank--)
         {
@@ -41,10 +44,14 @@ public class CreateBoard : MonoBehaviour
                 tileObject.GetComponent<SpriteRenderer>().color = (rank + file) % 2 == 1 ? lightColor : darkColor;
                 tileObject.transform.parent = gameObject.transform;
                 tileObject.transform.name = cnt.ToString();
-                GameObject pieceObject = Instantiate(piece, new Vector3(tileObject.transform.position.x, tileObject.transform.position.y, tileObject.transform.position.z - 1), Quaternion.identity);
+                Vector3 tileTransform = tileObject.transform.position;
+
+                GameObject pieceObject = Instantiate(piece, new Vector3(tileTransform.x, tileTransform.y, tileTransform.z - 1), Quaternion.identity);
                 pieceObject.GetComponent<SpriteRenderer>().sprite = pieces[gmScript.board[cnt]].img;
                 pieceObject.transform.parent = tileObject.transform;
+
                 cnt++;
+
                 if (startingFEN == "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 0")
                 {
                     if (PlayerPrefs.GetString("PieceColor") == "B")
@@ -54,7 +61,7 @@ public class CreateBoard : MonoBehaviour
                         var rand = new System.Random();
                         string choice = "WB"[rand.Next(0, 2)].ToString();
                         PlayerPrefs.SetString("PieceColor", choice);
-                        if (PlayerPrefs.GetString("PieceColor") == "B")
+                        if (choice == "B")
                             pieceObject.transform.rotation = new Quaternion(0f, 0f, 180f, 0f);
                     }
                 }
@@ -81,6 +88,7 @@ public class CreateBoard : MonoBehaviour
         List<string> FEN = startingFEN.Split(" ").ToList();
         FEN.Insert(1, "\n");
         eventHandler.GetComponent<EventHandlerScript>().text.text = string.Join(" ", FEN);
+        eventHandler.unreadyFlag = false;
     }
     private readonly Dictionary<char, byte> pieceToNum = new()
         {

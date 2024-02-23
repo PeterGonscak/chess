@@ -5,7 +5,6 @@ using UnityEngine.UI;
 
 public class ShowColor : MonoBehaviour
 {
-    public MainMenu mainMenuScript;
     private void Update()
     {
         ChangedColor();

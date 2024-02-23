@@ -4,6 +4,7 @@ using UnityEngine;
 
 public static class ChessBotFunctions
 {
+    const ulong one = 1;
     public static byte[][] DistanceToEdge()
     {
         byte[][] board = new byte[64][];
@@ -135,7 +136,59 @@ public static class ChessBotFunctions
         }
         return board;
     }
+    public static string GenerateFENposition(ulong[] bitBoard, int whiteKingPos, int blackKingPos)
+    {
+        string positionFEN = "";
+        int blankSquareCounter = 0;
+        for (int i = 0; i < 64; i++)
+        {
+            if(i == whiteKingPos)
+            {
+                positionFEN += (blankSquareCounter == 0 ? "" : blankSquareCounter.ToString()) + "K";
+                blankSquareCounter = 0;
+            }
+            else if(i == blackKingPos)
+            {
+                positionFEN += (blankSquareCounter == 0 ? "" : blankSquareCounter.ToString()) + "k";
+                blankSquareCounter = 0;
+            }
+            else if ((bitBoard[2] & (one << i)) != 0)
+                positionFEN += ConvertBit(ref blankSquareCounter, bitBoard[0], i, "p");
+            else if ((bitBoard[3] & (one << i)) != 0)
+                positionFEN += ConvertBit(ref blankSquareCounter, bitBoard[0], i, "n");
+            else if ((bitBoard[4] & (one << i)) != 0)
+                positionFEN += ConvertBit(ref blankSquareCounter, bitBoard[0], i, "b");
+            else if ((bitBoard[5] & (one << i)) != 0)
+                positionFEN += ConvertBit(ref blankSquareCounter, bitBoard[0], i, "r");
+            else if ((bitBoard[6] & (one << i)) != 0)
+                positionFEN += ConvertBit(ref blankSquareCounter, bitBoard[0], i, "q");
+            else blankSquareCounter++;
 
+            if (i % 8 == 7)
+            {
+                positionFEN += (blankSquareCounter == 0 ? "" : blankSquareCounter.ToString()) + (i != 63 ? "/" : "");
+                blankSquareCounter = 0;
+            }
+        }
+
+        return positionFEN;
+    }
+
+    private static string ConvertBit(ref int blankSquareCounter, ulong bitBoard, int square, string piece)
+    {
+        string returnString;
+        if ((bitBoard & (one << square)) != 0)
+        {
+            returnString = (blankSquareCounter == 0 ? "" : blankSquareCounter.ToString()) + piece.ToUpper();
+            blankSquareCounter = 0;
+        }
+        else
+        {
+            returnString = (blankSquareCounter == 0 ? "" : blankSquareCounter.ToString()) + piece.ToLower();
+            blankSquareCounter = 0;
+        }
+        return returnString;
+    }
     public static byte CountBitsSet(ulong number)
     {
         byte counter;

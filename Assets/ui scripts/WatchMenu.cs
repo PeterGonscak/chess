@@ -14,29 +14,28 @@ public class WatchMenu : MonoBehaviour
     public GameObject inputFEN;
 
     string[] oponents = {
-        "200 ELO",
-        "400 ELO",
-        "600 ELO",
         "800 ELO",
         "1000 ELO",
         "1200 ELO",
-        "1400 ELO",
-        "1600 ELO",
-        "1800 ELO",
-        "2000 ELO"
+        "1400 ELO"
     };
+    private void Start()
+    {
+        SlideChange(true);
+        SlideChange(false);
+    }
 
     public void SlideChange(bool white)
     {
         if (white)
         {
             whiteText.text = "White: " + oponents[(int)whiteSlider.value];
-            PlayerPrefs.SetString("whiteOpponent", oponents[(int)whiteSlider.value]);
+            PlayerPrefs.SetString("whiteBot", oponents[(int)whiteSlider.value]);
         }
         else
         {
             blackText.text = "Black: " + oponents[(int)blackSlider.value];
-            PlayerPrefs.SetString("blackOpponent", oponents[(int)blackSlider.value]);
+            PlayerPrefs.SetString("blackBot", oponents[(int)blackSlider.value]);
         }
     }
 

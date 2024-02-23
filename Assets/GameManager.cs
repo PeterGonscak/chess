@@ -11,10 +11,10 @@ public class GameManager : MonoBehaviour
     public int[] kingPositions = new int[] {60, 4};
     public bool[] castlingInfo = { false, false, false, false };
     public int lastENP;
-
+    
     public void gameStart(string FEN)
     {
-        string[] divFEN = FEN.Split(" ");              // 0-pos FEN / 1-onTurn / 2-castle Rights / 3- enP / 4- halfC / 5- fullC
+        string[] divFEN = FEN.Split(" ");
         gameData[0] = divFEN[1] == "w" ? 0 : 1;
         gameData[1] = divFEN[2].Contains('k') ? 1 : 0;
         gameData[2] = divFEN[2].Contains('q') ? 1 : 0;
@@ -32,6 +32,7 @@ public class GameManager : MonoBehaviour
                     board.Add(pieceToNum[c]);
         kingPositions[0] = board.FindIndex(x => x == 5);
         kingPositions[1] = board.FindIndex(x => x == 12);
+        cbScript.GenerateBoard();
     }
     public void MakeMove(int startingSquare, int landingSquare)
     {
@@ -57,7 +58,7 @@ public class GameManager : MonoBehaviour
             gameData[1] = 0;
             gameData[2] = 0;
 
-            if (landingSquare == startingSquare - 2) //cs tu matex lol
+            if (landingSquare == startingSquare - 2)
             {
                 board[59] = 3;
                 board[56] = 6;

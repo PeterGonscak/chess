@@ -1,14 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEngine.UIElements;
 using UnityEngine;
-using System.Runtime.CompilerServices;
 
 public struct ChessBot_v1
 {
     static readonly byte[][] distanceToEdge = ChessBotFunctions.DistanceToEdge();
-    static readonly bool[,] knightLegalMoves = ChessBotFunctions.LegalKnightMoves(distanceToEdge);
     static readonly sbyte[,][] possibleSlidingMoves = ChessBotFunctions.PossibleSlidingMoves(distanceToEdge);
     static readonly sbyte[][] possibleKnightMoves = ChessBotFunctions.PossibleKnightMoves(distanceToEdge);
     static readonly byte[,][] possiblePawnMoves = ChessBotFunctions.PossiblePawnMoves(distanceToEdge);
@@ -25,9 +22,8 @@ public struct ChessBot_v1
     /// </summary>
     /// <param name="FEN">FEN string of the position.</param>
     /// <returns> Starting and landing coordinates stored in <c>byte[2]</c>.</returns>
-    public static int[] GetMove(string FEN)
+    public static int[] GetMove(string FEN, List<string> positions)
     {
-        byte depth = 3;
         string[] divFEN = FEN.Split(" ");
         boolGameData = new bool[]
         {
@@ -47,7 +43,7 @@ public struct ChessBot_v1
         };
 
 
-        Span<ulong> bitBoard = stackalloc ulong[7] { 0, 0, 0, 0, 0, 0, 0 }; // white / black / pawns / knights / bishops / rooks / queens
+        Span<ulong> bitBoard = stackalloc ulong[7] { 0, 0, 0, 0, 0, 0, 0 };
 
         byte cnt = 0;
 
@@ -66,39 +62,54 @@ public struct ChessBot_v1
                 }
                 else cnt += (byte)int.Parse(c.ToString());
             }
-        float material = 0f;
-        for (int i = 0; i < 64; i++)
-        {
-            if ((bitBoard[2] & (one << i)) != 0)
-                material += 100;
-            else if ((bitBoard[3] & (one << i)) != 0)
-                material += 320;
-            else if ((bitBoard[4] & (one << i)) != 0)
-                material += 330;
-            else if ((bitBoard[5] & (one << i)) != 0)
-                material += 500;
-            else if ((bitBoard[6] & (one << i)) != 0)
-                material += 900;
-        }
-        if (material < 1500f) depth = 4;
-        if (material < 1000f) depth = 5;
+
+
+        byte depth = 3;
+        float material = ChessBotFunctions.CountBitsSet(bitBoard[2]) * Values.pieceValues[0]
+                       + ChessBotFunctions.CountBitsSet(bitBoard[3]) * Values.pieceValues[1]
+                       + ChessBotFunctions.CountBitsSet(bitBoard[4]) * Values.pieceValues[2]
+                       + ChessBotFunctions.CountBitsSet(bitBoard[5]) * Values.pieceValues[3]
+                       + ChessBotFunctions.CountBitsSet(bitBoard[6]) * Values.pieceValues[4];
+        if (material < 2000f) depth = 4;
+        if (material < 600f) depth = 5;
+
 
         PseudoMove[] generatedMoves = FindMoves(bitBoard);
         foreach (PseudoMove pseudoMove in generatedMoves)
         {
             Move playedMove = MakeMove(ref bitBoard, pseudoMove.from, pseudoMove.to, pseudoMove.piece, pseudoMove.enP, pseudoMove.promoted);
             if (NotInCheck(bitBoard, !boolGameData[0], byteGameData[!boolGameData[0] ? 3 : 4]))
-                movesAndEvals.Add(playedMove, -Minimax(bitBoard, depth));
+            {
+                float eval;
+                ulong[] bitBoardCopy = bitBoard.ToArray();
+                if (positions.Count(x => x == ChessBotFunctions.GenerateFENposition(bitBoardCopy, byteGameData[3], byteGameData[4])) == 2)
+                    eval = 0f;
+                else 
+                    eval = -Minimax(bitBoard, depth);
+
+                movesAndEvals.Add(playedMove, eval);
+            }
             UndoMove(ref bitBoard, playedMove);
         }
 
-        Debug.Log(Evaluate(bitBoard, boolGameData[0]));
 
         var ordered = movesAndEvals.OrderBy(x => x.Value).ToDictionary(x => x.Key, x => x.Value);
+
+        List<Move> bestMoves = new List<Move>();
+
+        foreach (var item in ordered)
+            if (item.Value >= (Values.botRandomisedPick ? ordered.Last().Value - Values.botRandomiseMaxDelta : ordered.Last().Value))
+                bestMoves.Add(item.Key);
+
+        System.Random rnd = new System.Random();
+        int moveIndex = rnd.Next(0, bestMoves.Count() - 1);
+
+
         movesAndEvals.Clear();
 
-        Debug.Log("Best Move: " + Functions.NumToTile(ordered.Last().Key.from) + "  " + Functions.NumToTile((byte)ordered.Last().Key.to) + "   " + ordered.Last().Value);
-        return new int[] { ordered.Last().Key.from, (byte)ordered.Last().Key.to };
+
+        int[] move = new int[] { bestMoves[moveIndex].from, bestMoves[moveIndex].to };
+        return move;
     }
 
     static float Minimax(Span<ulong> bitBoard, byte depth)
@@ -489,7 +500,7 @@ public struct ChessBot_v1
                     return false;
         }
         for (byte x = 0; x < possibleKnightMoves[kingSquare].Length; x++)                                                                                   // check knights
-            if (((bitBoard[colorWhite ? 1 : 0] & bitBoard[3]) & (one << possibleKnightMoves[kingSquare][x])) != 0)                                              // if enemy knight in possible
+            if (((bitBoard[colorWhite ? 1 : 0] & bitBoard[3]) & (one << possibleKnightMoves[kingSquare][x])) != 0)                                          // if enemy knight in possible
                 return false;
         for (byte y = 0; y < 4; y++)                                                                                                                        // check bishop & queen directions
             for (byte x = 0; x < possibleSlidingMoves[kingSquare, y].Length; x++)                                                                           // loop through possible
@@ -538,47 +549,69 @@ public struct ChessBot_v1
 
             if ((bitBoard[2] & (one << i)) != 0)
             {
-                eval += sign * (100 + Values.pawnPST[pstSquare]); //1600
-                material += 100;
+                material += 100;                                                    //1600
             }
             else if ((bitBoard[3] & (one << i)) != 0)
             {
-                eval += sign * (320 + Values.knightPST[pstSquare]); //640
+                eval += sign * (Values.pieceValues[1] + Values.knightPST[pstSquare]); //640
                 material += 320;
             }
             else if ((bitBoard[4] & (one << i)) != 0)
             {
-                eval += sign * (330 + Values.bishopPST[pstSquare]); //660
+                eval += sign * (Values.pieceValues[2] + Values.bishopPST[pstSquare]); //660
                 material += 330;
             }
             else if ((bitBoard[5] & (one << i)) != 0)
             {
-                eval += sign * (500 + Values.rookPST[pstSquare]); // 1000
+                eval += sign * (Values.pieceValues[3] + Values.rookPST[pstSquare]); // 1000
                 material += 500;
             }
             else if ((bitBoard[6] & (one << i)) != 0)
             {
-                eval += sign * (900 + Values.queenPST[pstSquare]); // 1800
+                eval += sign * (Values.pieceValues[4] + Values.queenPST[pstSquare]); // 1800
                 material += 900;
             }
         }
 
         float middleGameWeight;
-        if (material < 1000) middleGameWeight = 0;
+        float endGameWeight;
+        if (material < 2000) middleGameWeight = 0;
         else middleGameWeight = material;
-        float endGameWeight = 6000f - material;
+        if (8000f - material < 2000) endGameWeight = 0;
+        else endGameWeight = 8000f - material;
 
-        eval += signMask * (((Values.mg_kingPST[byteGameData[3]] * middleGameWeight) + (Values.eg_kingPST[byteGameData[3]] * endGameWeight)) / 6000f) * 3;
-        eval += -signMask * (((Values.mg_kingPST[byteGameData[4]] * middleGameWeight) + (Values.eg_kingPST[byteGameData[4]] * endGameWeight)) / 6000f) * 3;
+        for (byte i = 0; i < 64; i++)
+        {
+            if ((board & (one << i)) == 0 || i == byteGameData[3] || i == byteGameData[4]) continue;
+
+            sbyte sign = signMask;
+            byte pstSquare;
+
+            if ((bitBoard[0] & (one << i)) != 0)
+            {
+                sign *= 1;
+                pstSquare = i;
+            }
+            else
+            {
+                sign *= -1;
+                pstSquare = (byte)(i ^ 56);
+            }
+            eval += sign * (Values.pieceValues[0] +
+                    (((Values.mg_pawnPST[pstSquare] * middleGameWeight) + (Values.eg_pawnPST[pstSquare] * endGameWeight)) / 8000f)); //1600
+        }
+
+        eval += signMask * (((Values.mg_kingPST[byteGameData[3]] * middleGameWeight) + (Values.eg_kingPST[byteGameData[3]] * endGameWeight)) / 8000f) * 10;
+        eval += -signMask * (((Values.mg_kingPST[byteGameData[4] ^ 56] * middleGameWeight) + (Values.eg_kingPST[byteGameData[4] ^ 56] * endGameWeight)) / 8000f * 10);
 
         int kingRank = byteGameData[whiteOnTurn ? 3 : 4] % 8;
-        int kingFile = Mathf.FloorToInt(byteGameData[whiteOnTurn ? 3 : 4] / 8);
+        int kingFile = (int)Math.Floor((decimal)(byteGameData[whiteOnTurn ? 3 : 4] / 8));
 
         int oKingRank = byteGameData[whiteOnTurn ? 4 : 3] % 8;
-        int oKingFile = Mathf.FloorToInt(byteGameData[whiteOnTurn ? 4 : 3] / 8);
+        int oKingFile = (int)Math.Floor((decimal)(byteGameData[whiteOnTurn ? 4 : 3] / 8));
 
 
-        eval += (14 - (Mathf.Abs(kingRank - oKingRank) + Mathf.Abs(kingFile - oKingFile))) * 10 * endGameWeight / 5700f;
+        eval += (14 - (Math.Abs(kingRank - oKingRank) + Math.Abs(kingFile - oKingFile))) * 20 * endGameWeight / 7000f;
 
         return eval;
     }

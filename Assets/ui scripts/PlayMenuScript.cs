@@ -13,25 +13,19 @@ public class PlayMenuScript : MonoBehaviour
     public GameObject inputFEN;
     string[] oponents = { 
         "Pass & Play",
-        "200 ELO",
-        "400 ELO",
-        "600 ELO",
         "800 ELO",
         "1000 ELO",
         "1200 ELO",
-        "1400 ELO", 
-        "1600 ELO",
-        "1800 ELO",
-        "2000 ELO"
+        "1400 ELO"
     };
     void Start()
     {
-        PlayerPrefs.SetString("opponent", "Pass & Play");
+        PlayerPrefs.SetString("Bot", "Pass & Play");
     }
     public void SlideChange()
     {
         oponentText.text = oponents[(int) slider.value];
-        PlayerPrefs.SetString("opponent", oponents[(int)slider.value]);
+        PlayerPrefs.SetString("Bot", oponents[(int)slider.value]);
         if((int)slider.value == 0 || inputFEN.transform.GetChild(0).transform.GetChild(2).GetComponent<TextMeshProUGUI>().color == Color.green)
         {
             StartButton.SetActive(true);

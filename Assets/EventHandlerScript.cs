@@ -1,11 +1,7 @@
-using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
-using System.Threading.Tasks;
 using TMPro;
-using Unity.VisualScripting;
+using System.Threading;
 using UnityEngine;
 
 public class EventHandlerScript : MonoBehaviour
@@ -30,18 +26,28 @@ public class EventHandlerScript : MonoBehaviour
     public TextMeshProUGUI GOtext;
     public GameObject GameOver;
     public List<int> legalSquares;
+    public AudioSource audioSource;
+    public AudioClip[] audioClips = new AudioClip[4];
     static readonly byte[][] distanceToEdge = ChessBotFunctions.DistanceToEdge();
     readonly bool[,] knightLegalMoves = ChessBotFunctions.LegalKnightMoves(distanceToEdge);
 
     private float moveTimer;
     public GameManager gmScript;
+    public CreateBoard cbScript;
 
     readonly sbyte[] nMoves = new sbyte[] { -17, -15, -6, 10, 17, 15, 6, -10 };
-    readonly sbyte[] bMoves = new sbyte[4] { -9, -7, 9, 7 };
-    readonly sbyte[] rMoves = new sbyte[4] { -8, 1, 8, -1 };
     readonly sbyte[] qkMoves = new sbyte[8] { -9, -7, 9, 7, -8, 1, 8, -1 };
 
+    private List<string> positions = new();
+
     private bool[] taskRunStatus = { false, false, false };
+    private bool[] taskComplationStatus = { false, false, false };
+    private Thread[] threads = new Thread[3];
+    private int[] move = new int[2];
+    public bool unreadyFlag = true;
+
+    bool gameOver;
+
     readonly byte[][] rookPos = new byte[4][] {
         new byte[] { 63, 61 },
         new byte[] { 56, 59 },
@@ -50,98 +56,90 @@ public class EventHandlerScript : MonoBehaviour
     };
     private void Start()
     {
+        audioSource.volume = PlayerPrefs.GetFloat("Volume", 0.5f);
+        gameOver = false;
         moveTimer = Time.time;
-        lightColor = Functions.ConvertToColor(PlayerPrefs.GetString("LightSquares"));
-        darkColor = Functions.ConvertToColor(PlayerPrefs.GetString("DarkSquares"));
-        moveColor = Functions.ConvertToColor(PlayerPrefs.GetString("MoveSquares"));
-        if (PlayerPrefs.GetString("opponent") == "Pass & Play")
+        lightColor = Functions.ConvertToColor(PlayerPrefs.GetString("LightSquares", "rgba(0.9339623, 0.8006562, 0.6746681, 1)"));
+        darkColor = Functions.ConvertToColor(PlayerPrefs.GetString("DarkSquares", "rgba(0.4339623, 0.2914913, 0.108783, 1)"));
+        moveColor = Functions.ConvertToColor(PlayerPrefs.GetString("MoveSquares", "rgba(0.8588235, 0.9529411, 0.317647, 0.5)"));
+        if (PlayerPrefs.GetString("Bot", "Pass & Play") == "Pass & Play")
             passNplay = true;
         else
             playerOnTurn = PlayerPrefs.GetString("PieceColor") == "W";
+
+        Values.botRandomisedPick = PlayerPrefs.GetInt("BotRandom", 1) == 1;
+        Values.botRandomiseMaxDelta = PlayerPrefs.GetFloat("BotDelta", 2f);
     }
     void Update()
     {
+        if (unreadyFlag)
+            return;
+        if (gameOver)
+            return;
         if(PlayerPrefs.GetString("Mode") == "Player")
         {
             if (passNplay || playerOnTurn)
                 MovePlayer();
             else if (!taskRunStatus[0])
-            {
-                taskRunStatus[0] = true;
-                int[] move = new int[2];
-                switch (PlayerPrefs.GetString("opponent"))
-                {
-                    case "200 ELO":
-                        Task task = new Task(() =>
-                        {
-                            move = ChessBot_v1.GetMove(Board.GetComponent<CreateBoard>().GenerateFEN());
-                            taskRunStatus[0] = false;
-                        });
-                        task.Start();
-                        break;
-                    case "400 ELO":
-                        Task task2 = new Task(() =>
-                        {
-                            move = ChessBot_v2.GetMove(Board.GetComponent<CreateBoard>().GenerateFEN());
-                            taskRunStatus[0] = false;
-                        });
-                        task2.Start();
-                        break;
-                }
-                if (!taskRunStatus[0])
-                {
-                    Tile1 = Board.transform.Find(move[0].ToString()).gameObject;
-                    GameObject sClickedGO = Board.transform.Find(move[1].ToString()).gameObject;
-                    Move(sClickedGO, move[1]);
-                }
-            }
+                MoveBot(PlayerPrefs.GetString("Bot"), 0);
         }
         else
         {
-            if(Time.time - moveTimer < 0.5)
+            if(Time.time - moveTimer < 1)
                 return;
             if (playerOnTurn && !taskRunStatus[1])
-            {
-                taskRunStatus[1] = true;
-                Task task = new Task(() =>
-                {
-                    MoveBot("whiteOpponent");
-                    taskRunStatus[1] = false;
-                });
-                task.Start();
-            }
-            else if (!taskRunStatus[2])
-            {
-                taskRunStatus[2] = true;
-                Task task = new Task(() =>
-                {
-                    MoveBot("blackOpponent");
-                    taskRunStatus[2] = false;
-                });
-                task.Start();  
-            }
-            moveTimer = Time.time;
+                MoveBot(PlayerPrefs.GetString("whiteBot"), 1);
+            else if ((!playerOnTurn) && !taskRunStatus[2])
+                MoveBot(PlayerPrefs.GetString("blackBot"), 2);
         }
     }
 
-    public void MoveBot(string opponent)
+    private void MoveBot(string opponent, int taskIdentifier)
     {
-        int[] move = new int[2];
-        switch (PlayerPrefs.GetString(opponent))
+        
+        string fen = cbScript.GenerateFEN();
+        if ((!taskComplationStatus[taskIdentifier]) && !taskRunStatus[taskIdentifier])
         {
-            case "200 ELO":
-                move = ChessBot_v1.GetMove(Board.GetComponent<CreateBoard>().GenerateFEN());
-                break;
-            case "400 ELO":
-                move = ChessBot_v2.GetMove(Board.GetComponent<CreateBoard>().GenerateFEN());
-                break;
+            taskComplationStatus[taskIdentifier] = false;
+            taskRunStatus[taskIdentifier] = true;
+            threads[taskIdentifier] = new Thread(() =>
+            {
+                switch (opponent)
+                {
+                    case "800 ELO":
+                        move = ChessBot_v1.GetMove(fen, positions);
+                        break;
+                    case "1000 ELO":
+                        move = ChessBot_v2.GetMove(fen, positions);
+                        break;
+                    case "1200 ELO":
+                        move = ChessBot_v3.GetMove(fen, positions);
+                        break;
+                    case "1400 ELO":
+                        move = ChessBot_v4.GetMove(fen, positions);
+                        break;
+                }
+
+
+                taskComplationStatus[taskIdentifier] = true;
+                taskRunStatus[taskIdentifier] = false;
+            });
+            threads[taskIdentifier].Start();
         }
-        Tile1 = Board.transform.Find(move[0].ToString()).gameObject;
-        GameObject sClickedGO = Board.transform.Find(move[1].ToString()).gameObject;
-        Move(sClickedGO, move[1]);
+        if (taskComplationStatus[taskIdentifier])
+        {
+            threads[taskIdentifier].Join();
+            Tile1 = Board.transform.Find(move[0].ToString()).gameObject;
+            GameObject sClickedGO = Board.transform.Find(move[1].ToString()).gameObject;
+            Move(sClickedGO, move[1]);
+            taskComplationStatus[taskIdentifier] = false;
+            move = new int[2];
+            moveTimer = Time.time;
+            return;
+        }
     } 
 
-    public void MovePlayer()
+    private void MovePlayer()
     {
         if (Input.GetKey(KeyCode.Mouse0) && reset)
         {
@@ -153,7 +151,6 @@ public class EventHandlerScript : MonoBehaviour
                     GameObject sClickedGO = Board.transform.Find(i.ToString()).GetComponent<ClickDetection>().ClickDetect(cam);
                     if (sClickedGO != null && legalSquares.Contains(int.Parse(sClickedGO.transform.name)))
                     {
-                        Debug.Log("Move player");
                         Move(sClickedGO, i);
                         clicked = false;
                     }
@@ -198,16 +195,17 @@ public class EventHandlerScript : MonoBehaviour
         byte landingTile = byte.Parse(sClickedGO.name);
         drawLegalSquares(true, byte.Parse(Tile1.name));
         colorMovedSquares(true);
-        
 
-        gmScript.MakeMove(startingTile, landingTile);                                                                       // Make move on int[] board
+        bool capture = gmScript.board[landingTile] != 6;
 
-        Tile1.transform.GetChild(0).transform.position = sClickedGO.transform.GetChild(0).transform.position;               // Transfer Old Tile POS to New Tile POS
-        Tile1.transform.GetChild(0).transform.parent = sClickedGO.transform;                                                // Transfer parent of Old Tile
-        Destroy(sClickedGO.transform.GetChild(0).gameObject);                                                               // Destroy clicked on Object
+        gmScript.MakeMove(startingTile, landingTile);
 
-        GameObject newObj = Instantiate(PieceCopy, Tile1.transform.position, Quaternion.identity, Tile1.transform);         // Instantiate Empty Piece in place of the Old one
-        newObj.transform.position = new Vector3(newObj.transform.position.x, newObj.transform.position.y, -1f);             // Set z value of new Piece
+        Tile1.transform.GetChild(0).transform.position = sClickedGO.transform.GetChild(0).transform.position;
+        Tile1.transform.GetChild(0).transform.parent = sClickedGO.transform;
+        Destroy(sClickedGO.transform.GetChild(0).gameObject);
+
+        GameObject newObj = Instantiate(PieceCopy, Tile1.transform.position, Quaternion.identity, Tile1.transform);
+        newObj.transform.position = new Vector3(newObj.transform.position.x, newObj.transform.position.y, -1f);
 
         // En Passant 
 
@@ -252,29 +250,114 @@ public class EventHandlerScript : MonoBehaviour
         gmScript.UpdateData();
         playerOnTurn = !playerOnTurn;
         Tile1 = null;
-        List<string> FEN = Board.GetComponent<CreateBoard>().GenerateFEN().Split(" ").ToList();
+        List<string> FEN = cbScript.GenerateFEN().Split(" ").ToList();
         FEN.Insert(1, "\n");
         text.text = string.Join(" ", FEN);
-        if (CheckMateCheck(gmScript.gameData[0] == 0))
+
+        int gameStatus = GameStatusCheck(gmScript.gameData[0] == 0, FEN);
+
+        if (gameStatus != 0)
         {
-            GOtext.text = (gmScript.gameData[0] == 0 ? "Black" : "White") + " has won the game.";
-            GameOver.SetActive(true);
+            if(gameStatus == 1)
+            {
+                GOtext.text = "The Game has ended in a draw.";
+                GameOver.SetActive(true);
+                gameOver = true;
+            }
+            if(gameStatus == 2)
+            {
+                GOtext.text = (gmScript.gameData[0] == 0 ? "Black" : "White") + " has won the game.";
+                GameOver.SetActive(true);
+                gameOver = true;
+            }
         }
         lastMoveCords = new int[] { startingTile, landingTile };
         colorMovedSquares(false);
+
+        Debug.Log(InCheck((byte)gmScript.kingPositions[playerOnTurn ? 0 : 1], 0, 0, gmScript.kingPositions[playerOnTurn ? 0 : 1], false));
+
+        if (gameOver)
+            audioSource.clip = audioClips[3];
+        else if (InCheck((byte)gmScript.kingPositions[playerOnTurn ? 0 : 1], 0, 0, gmScript.kingPositions[playerOnTurn ? 0 : 1], false))
+            audioSource.clip = audioClips[2];
+        else if(capture)
+            audioSource.clip = audioClips[1];
+        else
+            audioSource.clip = audioClips[0];
+        audioSource.Play();
     }
-    public bool CheckMateCheck(bool white)
+    public int GameStatusCheck(bool white, List<string> FEN)
     {
+        int result = 0;
         int cnt = 0;
+        int whitePieces = 0;
+        int blackPieces = 0;
+
         for (byte i = 0; i < gmScript.board.Count; i++)
-            if (white)
+        {
+            if (gmScript.board[i] < 6)
             {
-                if (gmScript.board[i] < 6)
-                    { cnt += drawLegalSquares(true, i).Count; }
+                if(white)
+                    cnt += drawLegalSquares(true, i).Count;
+                whitePieces++;
             }
-            else if (gmScript.board[i] > 6)
-                    { cnt += drawLegalSquares(true, i).Count; }
-        return cnt == 0 && InCheck((byte)gmScript.kingPositions[white ? 0 : 1], 0, 0, gmScript.kingPositions[white ? 0 : 1], false);
+
+            if (gmScript.board[i] > 6)
+            {
+                if(!white)
+                    cnt += drawLegalSquares(true, i).Count;
+                blackPieces++;
+            }
+
+        }
+
+        if (cnt == 0)
+        {
+            byte kingPosition = (byte)gmScript.kingPositions[white ? 0 : 1];
+            if (InCheck(kingPosition, 0, 0, kingPosition, false))
+                return 2;
+            else 
+                return 1;
+        }
+        else
+        {
+            if (gmScript.gameData[6] >= 50)
+                return 1;
+            positions.Add(FEN[0]);
+            if (positions.Count(x => x == FEN[0]) == 3)
+                return 1;
+
+            if(gmScript.board.Count(x => x % 7 == 0) == 0)
+            {
+                int whiteKnights = gmScript.board.Count(x => x == 1);
+                int whiteBishops = gmScript.board.Count(x => x == 2);
+                int whiteRooks = gmScript.board.Count(x => x == 3);
+                int whiteQueens = gmScript.board.Count(x => x == 4);
+                int blackKnights = gmScript.board.Count(x => x == 1);
+                int blackBishops = gmScript.board.Count(x => x == 2);
+                int blackRooks = gmScript.board.Count(x => x == 3);
+                int blackQueens = gmScript.board.Count(x => x == 4);
+
+                if (whiteRooks + whiteQueens + blackRooks + blackQueens != 0)
+                    return 0;
+                
+                if(whitePieces == 0)
+                {
+                    if (blackBishops == 0 && blackKnights <= 2)
+                        return 1;
+                    if (blackBishops == 1 && blackKnights == 0)
+                        return 1;
+                }
+                else if (blackPieces == 0)
+                {
+                    if (whiteBishops == 0 && whiteKnights <= 2)
+                        return 1;
+                    if (whiteBishops == 1 && whiteKnights == 0)
+                        return 1;
+                }
+            }
+        }
+        return result;
     }
     public void MoveRook(byte orgSquare, byte newSquare)
     {
