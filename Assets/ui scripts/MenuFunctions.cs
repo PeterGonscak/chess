@@ -64,7 +64,10 @@ public class MenuFunctions : MonoBehaviour
     public void ActivateColorPicker(int colorToSet)
     {
         colorChange = colorToSet;
-        string prefColor = PlayerPrefs.GetString(colorToSet == 0 ? "LightSquares" : (colorToSet == 1 ? "DarkSquares" : "MoveSquares"));
+        string prefColor = PlayerPrefs.GetString(colorToSet == 0 ? "LightSquares" : (colorToSet == 1 ? "DarkSquares" : "MoveSquares"),
+            colorToSet == 0 ? "rgba(0.9339623, 0.8006562, 0.6746681, 1)" 
+            :(colorToSet == 1 ? "rgba(0.4339623, 0.2914913, 0.108783, 1)" 
+                                : "rgba(0.8588235, 0.9529411, 0.317647, 0.5)"));
         string[] rgba = prefColor.Substring(5, prefColor.Length - 6).Split(", ");
         colorPicker.color = new Color(float.Parse(rgba[0]), float.Parse(rgba[1]), float.Parse(rgba[2]), float.Parse(rgba[3]));
         if(colorPickerObj.activeInHierarchy && colorToSet == colorChange)
@@ -81,7 +84,7 @@ public class MenuFunctions : MonoBehaviour
     public void PlayButtonSound()
     {
         AudioSource audioSource = GameObject.Find("Audio Source").GetComponent<AudioSource>();
-        audioSource.volume = PlayerPrefs.GetFloat("Volume");
+        audioSource.volume = PlayerPrefs.GetFloat("Volume", 0.5f);
         audioSource.Play();
     }
     

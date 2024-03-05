@@ -7,6 +7,6 @@ public class SliderScript : MonoBehaviour
 {
     void Start()
     {
-        gameObject.GetComponent<Slider>().value = gameObject.transform.name == "Slider" ? PlayerPrefs.GetFloat("Volume") : PlayerPrefs.GetFloat("BotDelta");
+        gameObject.GetComponent<Slider>().value = gameObject.transform.name == "Slider" ? PlayerPrefs.GetFloat("Volume", 0.5f) : PlayerPrefs.GetFloat("BotDelta", 0.5f);
     }
 }

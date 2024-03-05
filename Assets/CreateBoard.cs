@@ -29,8 +29,8 @@ public class CreateBoard : MonoBehaviour
     {
         lightColor = Functions.ConvertToColor(PlayerPrefs.GetString("LightSquares", "rgba(0.9339623, 0.8006562, 0.6746681, 1)"));
         darkColor = Functions.ConvertToColor(PlayerPrefs.GetString("DarkSquares", "rgba(0.4339623, 0.2914913, 0.108783, 1)"));
-        if (PlayerPrefs.GetString("FEN") != "")
-            startingFEN = PlayerPrefs.GetString("FEN");
+        if (PlayerPrefs.GetString("FEN", "") != "")
+            startingFEN = PlayerPrefs.GetString("FEN", "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 0");
         gmScript.gameStart(startingFEN);
     }
     public void GenerateBoard()
@@ -54,9 +54,9 @@ public class CreateBoard : MonoBehaviour
 
                 if (startingFEN == "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 0")
                 {
-                    if (PlayerPrefs.GetString("PieceColor") == "B")
+                    if (PlayerPrefs.GetString("PieceColor", "W") == "B")
                         pieceObject.transform.rotation = new Quaternion(0f, 0f, 180f, 0f);
-                    else if (PlayerPrefs.GetString("PieceColor") == "R")
+                    else if (PlayerPrefs.GetString("PieceColor", "W") == "R")
                     {
                         var rand = new System.Random();
                         string choice = "WB"[rand.Next(0, 2)].ToString();
@@ -71,7 +71,7 @@ public class CreateBoard : MonoBehaviour
         }
         if (startingFEN == "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 0")
         {
-            if (PlayerPrefs.GetString("PieceColor") == "B")
+            if (PlayerPrefs.GetString("PieceColor", "W") == "B")
             {
                 gameObject.transform.rotation = new Quaternion(0f, 0f, 180f, 0f);
                 gameObject.transform.position = new Vector3(-16.5f, 4f, 1f);

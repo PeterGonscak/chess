@@ -65,7 +65,7 @@ public class EventHandlerScript : MonoBehaviour
         if (PlayerPrefs.GetString("Bot", "Pass & Play") == "Pass & Play")
             passNplay = true;
         else
-            playerOnTurn = PlayerPrefs.GetString("PieceColor") == "W";
+            playerOnTurn = PlayerPrefs.GetString("PieceColor", "W") == "W";
 
         Values.botRandomisedPick = PlayerPrefs.GetInt("BotRandom", 1) == 1;
         Values.botRandomiseMaxDelta = PlayerPrefs.GetFloat("BotDelta", 2f);
@@ -76,21 +76,21 @@ public class EventHandlerScript : MonoBehaviour
             return;
         if (gameOver)
             return;
-        if(PlayerPrefs.GetString("Mode") == "Player")
+        if(PlayerPrefs.GetString("Mode", "Player") == "Player")
         {
             if (passNplay || playerOnTurn)
                 MovePlayer();
             else if (!taskRunStatus[0])
-                MoveBot(PlayerPrefs.GetString("Bot"), 0);
+                MoveBot(PlayerPrefs.GetString("Bot", "700 ELO"), 0);
         }
         else
         {
             if(Time.time - moveTimer < 1)
                 return;
             if (playerOnTurn && !taskRunStatus[1])
-                MoveBot(PlayerPrefs.GetString("whiteBot"), 1);
+                MoveBot(PlayerPrefs.GetString("whiteBot", "700 ELO"), 1);
             else if ((!playerOnTurn) && !taskRunStatus[2])
-                MoveBot(PlayerPrefs.GetString("blackBot"), 2);
+                MoveBot(PlayerPrefs.GetString("blackBot", "700 ELO"), 2);
         }
     }
 
